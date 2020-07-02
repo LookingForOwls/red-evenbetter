@@ -1,16 +1,14 @@
-#!/usr/bin/env python
-import ConfigParser
+from configparser import ConfigParser
 import argparse
-import cPickle as pickle
+import jsonpickle
 import os
 import shutil
 import sys
 import tempfile
-import urlparse
+from urllib import parse as urlparse
 from multiprocessing import cpu_count
 
 from red_better import transcode, tagging, redactedapi
-from _version import __version__
 
 
 def create_description(torrent, flac_dir, format, permalink):
@@ -27,7 +25,7 @@ def create_description(torrent, flac_dir, format, permalink):
         '',
         '[code]%s[/code]' % ' | '.join(cmds),
         '',
-        'Created using [url=https://redacted.ch/forums.php?action=viewthread&threadid=35524]REDBetter (iw00t fork)[/url]'
+        'Created using [url=https://gitlab.com/stormgit/red-better]REDBetter (glasslake fork)[/url]'
         ''
         ]
     return description
@@ -62,13 +60,12 @@ def main():
     parser.add_argument('-s', '--single', action='store_true', help='only add one format per release (useful for getting unique groups)')
     parser.add_argument('-j', '--threads', type=int, help='number of threads to use when transcoding',
             default=max(cpu_count() - 1, 1))
-    parser.add_argument('--config', help='the location of the configuration file', \
-            default=os.path.expanduser('~/.redactedbetter/config'))
-    parser.add_argument('--cache', help='the location of the cache', \
+    parser.add_argument('--config', help='the location of the configuration file',
+                        default=os.path.expanduser('~/.redactedbetter/config'))
+    parser.add_argument('--cache', help='the location of the cache',
             default=os.path.expanduser('~/.redactedbetter/cache'))
     parser.add_argument('-U', '--no-upload', action='store_true', help='don\'t upload new torrents (in case you want to do it manually)')
     parser.add_argument('-E', '--no-24bit-edit', action='store_true', help='don\'t try to edit 24-bit torrents mistakenly labeled as 16-bit')
-    parser.add_argument('--version', action='version', version='%(prog)s ' + __version__)
 
     args = parser.parse_args()
 
@@ -149,7 +146,7 @@ def main():
         if group != None:
             torrent = [t for t in group['torrents'] if t['id'] == torrentid][0]
 
-            artist = "";
+            artist = ""
             if len(group['group']['musicInfo']['artists']) > 1:
                 artist = "Various Artists"
             else:
