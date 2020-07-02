@@ -2,7 +2,7 @@
 
 import sys
 import os
-import ConfigParser
+import configparser
 import json
 import argparse
 
@@ -23,19 +23,19 @@ def main():
 
     args = parser.parse_args()
 
-    config = ConfigParser.SafeConfigParser()
+    config = configparser.SafeConfigParser()
     try:
         open(args.config)
         config.read(args.config)
     except:
-        print "please run redactedbetter once"
+        print("please run redactedbetter once")
         sys.exit(2)
 
     username = config.get('redacted', 'username')
     password = config.get('redacted', 'password')
     torrent_dir = os.path.expanduser(config.get('redacted', 'torrent_dir'))
 
-    print 'Logging in to RED...'
+    print('Logging in to RED...')
     api = RedactedAPI(username, password)
 
     try:
@@ -45,17 +45,17 @@ def main():
         json.dump(cache, open(args.cache, 'wb'))
 
     while len(cache) < args.count:
-        print 'Refreshing better.php and finding %i candidates' % (args.count - len(cache))
+        print('Refreshing better.php and finding %i candidates' % (args.count - len(cache)))
         for torrent in api.get_better(args.better):
             if len(cache) >= args.count:
                 break
 
-            print "Testing #%i" % torrent['id']
+            print("Testing #%i" % torrent['id'])
             info = api.get_torrent_info(torrent['id'])
             if info['snatched'] < args.snatches:
                 continue
 
-            print "Fetching #%i with %i snatches" % (torrent['id'], info['snatched'])
+            print("Fetching #%i with %i snatches" % (torrent['id'], info['snatched']))
 
             with open(os.path.join(torrent_dir, '%i.torrent' % torrent['id']), 'wb') as f:
                 f.write(api.get_torrent(torrent['id']))
@@ -67,7 +67,7 @@ def main():
             cache.append(torrent)
             json.dump(cache, open(args.cache, 'wb'))
 
-    print 'Nothing left to do'
+    print('Nothing left to do')
 
 if __name__ == '__main__':
     main()

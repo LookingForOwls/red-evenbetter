@@ -4,7 +4,7 @@
 import os
 import json
 import argparse
-import ConfigParser
+import configparser
 import sys
 
 lockfile = os.path.expanduser('~/.redactedbetter/parse.lock')
@@ -12,7 +12,7 @@ lockfile = os.path.expanduser('~/.redactedbetter/parse.lock')
 
 def main():
     if os.path.exists(lockfile):
-        print "Found lockfile, exiting...."
+        print("Found lockfile, exiting....")
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter, prog='redactedbetter')
     parser.add_argument('--cache', help='the location of the cache',
@@ -20,7 +20,7 @@ def main():
 
     args = parser.parse_args()
     while parse_stuff(args.cache) and not os.path.exists(lockfile):
-        print "Done encoding cycle"
+        print("Done encoding cycle")
 
 
 def parse_stuff(cache_file):
@@ -44,7 +44,7 @@ def parse_stuff(cache_file):
 
     cmdline = "python2 redactedbetter %s" % ' '.join(permalinks)
     json.dump(cache_new, open(cache_file, 'wb'))
-    print "Executing... " + cmdline
+    print("Executing... " + cmdline)
     os.system(cmdline)
     os.remove(lockfile)
     return True

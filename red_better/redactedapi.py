@@ -5,8 +5,8 @@ import json
 import time
 import requests
 import mechanize
-import HTMLParser
-from cStringIO import StringIO
+import html.parser
+from io import StringIO
 
 headers = {
     'Connection': 'keep-alive',
@@ -56,7 +56,7 @@ def allowed_transcodes(torrent):
     if preemphasis:
         return []
     else:
-        return formats.keys()
+        return list(formats.keys())
 
 class LoginException(Exception):
     pass
@@ -84,7 +84,7 @@ class RedactedAPI:
             try:
                 self._login_cookie()
             except:
-                print "WARNING: session cookie attempted and failed"
+                print("WARNING: session cookie attempted and failed")
                 self._login_username_password()
         else:
             self._login_username_password()
@@ -108,7 +108,7 @@ class RedactedAPI:
         '''Logs in user and gets authkey from server'''
 
         if not self.username or self.username == "":
-            print "WARNING: username authentication attempted, but username not set, skipping."
+            print("WARNING: username authentication attempted, but username not set, skipping.")
             raise LoginException
         loginpage = 'https://redacted.ch/login.php'
         data = {'username': self.username,
@@ -284,4 +284,4 @@ class RedactedAPI:
         return self.request('torrent', id=id)['torrent']
 
 def unescape(text):
-    return HTMLParser.HTMLParser().unescape(text)
+    return html.parser.HTMLParser().unescape(text)

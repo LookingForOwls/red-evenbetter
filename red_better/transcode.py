@@ -9,7 +9,7 @@ import shutil
 import signal
 import subprocess
 import sys
-from HTMLParser import HTMLParser
+from html.parser import HTMLParser
 import unidecode
 
 import mutagen.flac
@@ -158,11 +158,12 @@ def transcode_commands(output_format, resample, needed_sample_rate, flac_file, t
     if output_format == 'FLAC' and resample:
         commands = ['sox %(FLAC)s -G -b 16 %(FILE)s rate -v -L %(SAMPLERATE)s dither' % transcode_args]
     else:
-        commands = map(lambda cmd: cmd % transcode_args, transcoding_steps)
+        commands = [cmd % transcode_args for cmd in transcoding_steps]
     return commands
 
 # Pool.map() can't pickle lambdas, so we need a helper function.
-def pool_transcode((flac_file, output_dir, output_format)):
+def pool_transcode(xxx_todo_changeme):
+    (flac_file, output_dir, output_format) = xxx_todo_changeme
     return transcode(flac_file, output_dir, output_format)
 
 def transcode(flac_file, output_dir, output_format):
@@ -260,7 +261,7 @@ def get_transcode_dir(flac_dir, output_dir, basename, output_format, resample):
     basename = get_suitable_basename(basename)
     
     while path_length_exceeds_limit(flac_dir, basename):
-        basename = get_suitable_basename(raw_input("The file paths in this torrent exceed the 180 character limit. \n\
+        basename = get_suitable_basename(input("The file paths in this torrent exceed the 180 character limit. \n\
             The current directory name is: " + get_suitable_basename(basename.decode('utf-8')) + " \n\
             Please enter a shorter directory name: ").decode('utf-8'))
 
@@ -368,7 +369,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('input_dir')
     parser.add_argument('output_dir')
-    parser.add_argument('output_format', choices=encoders.keys())
+    parser.add_argument('output_format', choices=list(encoders.keys()))
     parser.add_argument('-j', '--threads', default=multiprocessing.cpu_count(), type=int)
     args = parser.parse_args()
 
