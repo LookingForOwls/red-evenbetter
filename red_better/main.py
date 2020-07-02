@@ -9,9 +9,7 @@ import tempfile
 import urlparse
 from multiprocessing import cpu_count
 
-import tagging
-import transcode
-import redactedapi
+from red_better import transcode, tagging, redactedapi
 from _version import __version__
 
 
@@ -121,7 +119,8 @@ def main():
                 supported_media = set([medium.strip().lower() for medium in media_config.split(',')])
                 if not supported_media.issubset(set(redactedapi.lossless_media)):
                     print 'Unsupported media type "%s", edit your configuration' % (supported_media - redactedapi.lossless_media).pop()
-                    print 'Supported types are:', ', '.join(redactedapi.lossless_media)
+                    print 'Supported types are:', ', '.join(
+                        redactedapi.lossless_media)
                     sys.exit(2)
         except ConfigParser.NoOptionError:
             supported_media = redactedapi.lossless_media
@@ -174,7 +173,7 @@ def main():
                     print "Path not found - skipping: %s" % flac_file
                     continue
                 flac_dir = os.path.join(data_dir, "%s (%s) [FLAC]" % (
-                redactedapi.unescape(group['group']['name']), group['group']['year']))
+                    redactedapi.unescape(group['group']['name']), group['group']['year']))
                 if not os.path.exists(flac_dir):
                     os.makedirs(flac_dir)
                 shutil.copy(flac_file, flac_dir)

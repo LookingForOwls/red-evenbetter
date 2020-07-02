@@ -6,7 +6,7 @@ import ConfigParser
 import json
 import argparse
 
-from redactedapi import RedactedAPI
+from red_better.redactedapi import RedactedAPI
 
 
 def main():
