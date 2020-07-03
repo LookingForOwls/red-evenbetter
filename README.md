@@ -140,7 +140,7 @@ Alternatively, the cache remembers the exit mode for each torrent that is added 
 
     $> poetry run better --retry spectrograms hashcheck
     
-The `--retry` flag accepts a space-delimited list of modes to retry. Acceptable modes are one of: `missing`, `multichannel`, `broken_tags`, `spectrograms`, `24bit`, `hashcheck`, `formats`, done`.
+The `--retry` flag accepts a space-delimited list of modes to retry. Acceptable modes are one of: `missing`, `multichannel`, `broken_tags`, `spectrograms`, `24bit`, `hashcheck`, `formats`, `done`.
 
 ## Bugs and feature requests
 
