@@ -41,7 +41,7 @@ $> make && sudo make install
 
 If you are on a seedbox and you lack the privileges to install packages, you are best off contacting your seedbox provider and asking them to install the listed packages.
 
-#### 4. Install `mechanize`, `mutagen`, `requests` and `Unidecode` Python modules
+#### 4. Install REDBetter
 
 * Use Poetry to install REDBetter by running
 ~~~~
