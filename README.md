@@ -41,7 +41,7 @@ $> make && sudo make install
 
 If you are on a seedbox and you lack the privileges to install packages, you are best off contacting your seedbox provider and asking them to install the listed packages.
 
-#### 4. Install `mechanize`, `mutagen`, `requests` and `Unidecode` Python modules
+#### 4. Install REDBetter
 
 * Use Poetry to install REDBetter by running
 ~~~~
@@ -77,7 +77,6 @@ Open this file in your preferred text editor, and configure as desired. The opti
 * `torrent_dir`: The directory where the generated `.torrent` files are stored.
 * `spectral_dir`: The directory where temporary spectral images will be written to for user verification
 * `formats`: A comma space (`, `) separated list of formats you'd like to transcode to. By default, this will be `flac, v0, 320`. `flac` is included because REDBetter supports converting 24-bit FLAC to 16-bit FLAC. Note that `v2` is not included deliberately - v0 torrents trump v2 torrents per redacted rules.
-* `24bit_behaviour`: Defines what happens when the program encounters a FLAC that it thinks is 24-bit. If it is set to `2`, every FLAC that has a bit depth of 24 will be silently re-categorized. If it is set to `1`, a prompt wil appear. The default is `0` which ignores these occurrences.
 
 It is recommended that you use the API key method of authentication.
 
