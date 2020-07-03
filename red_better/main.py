@@ -303,26 +303,29 @@ def main():
                 continue
 
             needed = formats_needed(group, torrent, supported_formats)
-            print("Formats needed: %s" % ', '.join(needed))
-            if len(needed) == 0:
-                print('No formats needed. Skipping.')
 
-            if needed:
-                # Before proceeding, do the basic tag checks on the source
-                # files to ensure any uploads won't be reported, but punt
-                # on the tracknumber formatting; problems with tracknumber
-                # may be fixable when the tags are copied.
-                broken_tags = False
-                for flac_file in transcode.locate(flac_dir, transcode.ext_matcher('.flac')):
-                    (ok, msg) = tagging.check_tags(flac_file, check_tracknumber_format=False)
-                    if not ok:
-                        print("A FLAC file in this release has unacceptable tags - skipping: %s" % msg)
-                        print("You might be able to trump it.")
-                        broken_tags = True
-                        break
-                if broken_tags:
-                    cache.add(torrentid, 'broken_tags', cache_path)
-                    continue
+            if len(needed) == 0:
+                cache.add(torrentid, 'formats', cache_path)
+                print('No formats needed. Skipping.')
+                continue
+            else:
+                print("Formats needed: %s" % ', '.join(needed))
+
+            # Before proceeding, do the basic tag checks on the source
+            # files to ensure any uploads won't be reported, but punt
+            # on the tracknumber formatting; problems with tracknumber
+            # may be fixable when the tags are copied.
+            broken_tags = False
+            for flac_file in transcode.locate(flac_dir, transcode.ext_matcher('.flac')):
+                (ok, msg) = tagging.check_tags(flac_file, check_tracknumber_format=False)
+                if not ok:
+                    print("A FLAC file in this release has unacceptable tags - skipping: %s" % msg)
+                    print("You might be able to trump it.")
+                    broken_tags = True
+                    break
+            if broken_tags:
+                cache.add(torrentid, 'broken_tags', cache_path)
+                continue
 
             # Manually validate spectrograms
             if not args.skip_spectral:
