@@ -10,6 +10,8 @@ This project differs from its parent fork because it allows the user to verify s
 
 Additionally, this fork only uses the API for site access and so does not run afoul of the rule that states that HTML scraping is not allowed.
 
+Finally, this fork performs automatic hashcheck verification on the source FLAC files before transcoding them in case files are missing/corrupted.
+
 This fork effectively aims to make the process result in fewer errors but increases the amount of work the user must go through to upload transcodes.
 
 ## Dependencies
@@ -59,6 +61,12 @@ These should all be available on your package manager of choice:
   * macOS: `brew install lame sox flac`
 
 
+#### 6. (Optional) Install Pyrocore (hashcheck)
+
+This program requires the `hashcheck` program from pyrocore to be available on your path in order to run hash check verification. This verification can be skipped (not recommended) by providing the `--skip-hashcheck` option.
+
+If you do not want to opt out of hashcheck verification, you may install pyrocore with [these](https://pyrocore.readthedocs.io/en/latest/installation.html) instructions (or ask your seedbox provider if applicable).
+
 
 ## Configuration
 Run REDBetter by running `poetry run better`
@@ -78,12 +86,12 @@ Open this file in your preferred text editor, and configure as desired. The opti
 * `spectral_dir`: The directory where temporary spectral images will be written to for user verification
 * `formats`: A comma space (`, `) separated list of formats you'd like to transcode to. By default, this will be `flac, v0, 320`. `flac` is included because REDBetter supports converting 24-bit FLAC to 16-bit FLAC. Note that `v2` is not included deliberately - v0 torrents trump v2 torrents per redacted rules.
 
-It is recommended that you use the API key method of authentication.
+It is required that you use the API key method of authentication unless you choose to skip hashcheck verification.
 
 ## Usage
 ~~~~
 usage: redactedbetter [-h] [-s] [-j THREADS] [--config CONFIG] [--cache CACHE] [-p PAGE_SIZE]
-                      [--skip-missing] [-r [RETRY [RETRY ...]]] [--skip-spectral]
+                      [--skip-missing] [-r [RETRY [RETRY ...]]] [--skip-spectral] [--skip-hashcheck]
                       [release_urls [release_urls ...]]
 
 positional arguments:
@@ -104,17 +112,19 @@ optional arguments:
   -r [RETRY [RETRY ...]], --retry [RETRY [RETRY ...]]
                         Retries certain classes of previous exit statuses (default: [])
   --skip-spectral       Skips spectrograph verification (default: False)
+  --skip-hashcheck      Skip source file integrity verification (default: False)
+
 ~~~~
 
 ### Examples
 
-To transcode and upload everything you have in your download directory with manual spectral verification (recommended):
+To transcode and upload everything you have in your download directory with manual spectral verification and hashcheck verification (recommended):
 
     $> poetry run better
     
 To transcode and upload everything you have in your download directory with no verification (not recommended):
 
-    $> poetry run better --skip-spectral
+    $> poetry run better --skip-spectral --skip-hashcheck
 
 To transcode and upload a specific release (provided you have already downloaded the FLAC and it is located in your `data_dir`):
 
@@ -122,15 +132,15 @@ To transcode and upload a specific release (provided you have already downloaded
 
 REDBetter caches the results of your transcodes, and will skip any transcodes it believes it's already finished. This makes subsequent runs much faster than the first, especially with large download directories. However, if you do run into errors when running the script, sometimes you will find that the cache thinks the torrent it crashed on previously was uploaded - so it skips it. A solution would be to manually specify the release as mentioned above. If you have multiple issues like this, you can remove the cache:
 
-    $> poetry run better ~/.redactedbetter/cache
+    $> rm ~/.redactedbetter/cache
 
 Beware though, this will cause the script to re-check every download as it does on the first run.
 
-Alternatively, the cache remembers the exit mode for each torrent that is added to it. If you want to re-run all torrents that failed the spectral check, for example, you can run
+Alternatively, the cache remembers the exit mode for each torrent that is added to it. If you want to re-run all torrents that failed the spectral or hashcheck tests, for example, you can run
 
-    $> poetry run better --retry spectrograms
+    $> poetry run better --retry spectrograms hashcheck
     
-The `--retry` flag accepts a space-delimited list of modes to retry. Acceptable modes are one of: `missing`, `multichannel`, `broken_tags`, `spectrograms`, `24bit`, `done`.
+The `--retry` flag accepts a space-delimited list of modes to retry. Acceptable modes are one of: `missing`, `multichannel`, `broken_tags`, `spectrograms`, `24bit`, `hashcheck`, `done`.
 
 ## Bugs and feature requests
 

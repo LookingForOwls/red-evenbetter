@@ -3,6 +3,7 @@ import re
 import json
 import time
 import traceback
+from pathlib import Path
 
 import requests
 import html.parser
@@ -143,7 +144,7 @@ class RedactedAPI:
     def logout(self):
         self.session.get("https://redacted.ch/logout.php?auth=%s" % self.authkey)
 
-    def request(self, action, **kwargs):
+    def request(self, action, passthrough=False, **kwargs):
         '''Makes an AJAX request at a given action page'''
         while time.time() - self.last_request < self.rate_limit:
             time.sleep(0.1)
@@ -155,6 +156,8 @@ class RedactedAPI:
         params.update(kwargs)
         r = self.session.get(ajaxpage, params=params, allow_redirects=False)
         self.last_request = time.time()
+        if passthrough:
+            return r.content
         try:
             parsed = json.loads(r.content)
             if parsed['status'] != 'success':
@@ -184,6 +187,14 @@ class RedactedAPI:
                 keep_releases.append(release)
         res['torrentgroup'] = keep_releases
         return res
+
+    def save_torrent_file(self, torrent_id: int, file_path: Path):
+        if not self.api_key_authenticated:
+            raise LoginException('Must have API key authentication to save'
+                                 'torrent files')
+        torrent_file = self.request('download', passthrough=True, id=torrent_id)
+        with open(str(file_path), 'wb') as file:
+            file.write(torrent_file)
 
     def snatched(self):
         page = 0

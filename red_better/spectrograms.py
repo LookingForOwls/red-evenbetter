@@ -1,21 +1,7 @@
 import shutil
-import subprocess
 from pathlib import Path
-from typing import Optional
 
-
-def run(command: str, directory: Path) -> Optional[str]:
-    command = f'cd \"{directory}\" && {command}'
-    try:
-        output = subprocess.check_output(
-            command,
-            stderr=subprocess.STDOUT,
-            shell=True
-        )
-    except subprocess.CalledProcessError as e:
-        print(e)
-        return None
-    return output.decode('utf-8')
+from red_better.command import run_command
 
 
 def make_spectrograms(
@@ -29,7 +15,7 @@ def make_spectrograms(
         print(f'Temp spectrogram dir {temp_spectrogram_dir} already exists.'
               f'Skipping since unable to validate.')
         return False
-    if run(command, flac_dir) is None:
+    if run_command(command, flac_dir) is None:
         return False
     if not temp_spectrogram_dir.exists():
         print(f'Temp spectrogram dir {temp_spectrogram_dir} was not created'

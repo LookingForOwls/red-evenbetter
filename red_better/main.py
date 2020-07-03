@@ -13,6 +13,7 @@ from multiprocessing import cpu_count
 from red_better import transcode, tagging, redactedapi
 from red_better.cache import Cache
 from red_better.spectrograms import make_spectrograms
+from red_better.hashcheck import run_hashcheck
 
 
 def create_description(torrent, flac_dir, format, permalink) -> str:
@@ -185,6 +186,12 @@ def main():
         default=False,
         help='Skips spectrograph verification'
     )
+    parser.add_argument(
+        '--skip-hashcheck',
+        action='store_true',
+        default=False,
+        help='Skip source file integrity verification'
+    )
 
     args = parser.parse_args()
 
@@ -323,6 +330,28 @@ def main():
                 if not spectrograms_ok:
                     cache.add(torrentid, 'spectrograms', cache_path)
                     continue
+
+            if not args.skip_hashcheck:
+                file_path = Path(tempfile.mkstemp()[1])
+                hashcheck_passed = False
+                try:
+                    api.save_torrent_file(torrentid, file_path)
+                    hashcheck_passed, output = run_hashcheck(
+                        file_path,
+                        Path(flac_dir)
+                    )
+                finally:
+                    file_path.unlink()
+                if hashcheck_passed:
+                    print('Hashcheck passed!')
+                else:
+                    cache.add(torrentid, 'hashcheck', cache_path)
+                    print('Hashcheck failed with output:')
+                    print(output)
+                    print('Skipping.')
+                    continue
+
+            sys.exit(1)
 
             for format in needed:
                 if Path(flac_dir).exists():
