@@ -1,17 +1,16 @@
 #!/usr/bin/env python
 import re
-import os
 import json
 import time
+import traceback
+
 import requests
-import mechanize
 import html.parser
-from io import StringIO
 
 headers = {
     'Connection': 'keep-alive',
     'Cache-Control': 'max-age=0',
-    'User-Agent': 'REDBetter crawler',
+    'User-Agent': 'REDBetter API',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     'Accept-Encoding': 'gzip,deflate,sdch',
     'Accept-Language': 'en-US,en;q=0.8',
@@ -50,6 +49,7 @@ formats = {
     },
 }
 
+
 def allowed_transcodes(torrent):
     """Some torrent types have transcoding restrictions."""
     preemphasis = re.search(r"""pre[- ]?emphasi(s(ed)?|zed)""", torrent['remasterTitle'], flags=re.IGNORECASE)
@@ -58,29 +58,44 @@ def allowed_transcodes(torrent):
     else:
         return list(formats.keys())
 
+
 class LoginException(Exception):
     pass
+
 
 class RequestException(Exception):
     pass
 
+
 class RedactedAPI:
-    def __init__(self, username=None, password=None, session_cookie=None):
+    def __init__(
+            self,
+            page_size,
+            username=None,
+            password=None,
+            session_cookie=None,
+            api_key=None,
+    ):
         self.session = requests.Session()
         self.session.headers.update(headers)
+        self.page_size = page_size
         self.username = username
         self.password = password
         self.session_cookie = session_cookie
+        self.api_key = api_key
         self.authkey = None
         self.passkey = None
         self.userid = None
+        self.api_key_authenticated = False
         self.tracker = "https://flacsfor.me/"
         self.last_request = time.time()
         self.rate_limit = 2.0 # seconds between requests
         self._login()
 
     def _login(self):
-        if self.session_cookie is not None:
+        if self.api_key is not None and len(self.api_key) > 0:
+            self._login_api_key()
+        elif self.session_cookie is not None and len(str(self.session_cookie)) > 0:
             try:
                 self._login_cookie()
             except:
@@ -89,6 +104,19 @@ class RedactedAPI:
         else:
             self._login_username_password()
 
+    def _get_account_info(self):
+        accountinfo = self.request('index')
+        if accountinfo is None:
+            raise LoginException
+        self.authkey = accountinfo['authkey']
+        self.passkey = accountinfo['passkey']
+        self.userid = accountinfo['id']
+
+    def _login_api_key(self):
+        self.session.headers.update({'Authorization': self.api_key})
+        self._get_account_info()
+        self.api_key_authenticated = True
+
     def _login_cookie(self):
         mainpage = 'https://redacted.ch/';
         cookiedict = {"session": self.session_cookie}
@@ -96,13 +124,7 @@ class RedactedAPI:
 
         self.session.cookies.update(cookies)
         r = self.session.get(mainpage)
-        try:
-            accountinfo = self.request('index')
-            self.authkey = accountinfo['authkey']
-            self.passkey = accountinfo['passkey']
-            self.userid = accountinfo['id']
-        except:
-            raise LoginException
+        self._get_account_info()
 
     def _login_username_password(self):
         '''Logs in user and gets authkey from server'''
@@ -116,17 +138,7 @@ class RedactedAPI:
         r = self.session.post(loginpage, data=data)
         if r.status_code != 200:
             raise LoginException
-        accountinfo = self.request('index')
-        self.authkey = accountinfo['authkey']
-        self.passkey = accountinfo['passkey']
-        self.userid = accountinfo['id']
-        try:
-            accountinfo = self.request('index')
-            self.authkey = accountinfo['authkey']
-            self.passkey = accountinfo['passkey']
-            self.userid = accountinfo['id']
-        except:
-            raise LoginException
+        self._get_account_info()
 
     def logout(self):
         self.session.get("https://redacted.ch/logout.php?auth=%s" % self.authkey)
@@ -138,7 +150,7 @@ class RedactedAPI:
 
         ajaxpage = 'https://redacted.ch/ajax.php'
         params = {'action': action}
-        if self.authkey:
+        if not self.api_key_authenticated and self.authkey:
             params['auth'] = self.authkey
         params.update(kwargs)
         r = self.session.get(ajaxpage, params=params, allow_redirects=False)
@@ -146,22 +158,10 @@ class RedactedAPI:
         try:
             parsed = json.loads(r.content)
             if parsed['status'] != 'success':
-                #raise RequestException
                 return None
             return parsed['response']
-        except ValueError:
-            raise RequestException
-
-    def request_html(self, action, **kwargs):
-        while time.time() - self.last_request < self.rate_limit:
-            time.sleep(0.1)
-
-        ajaxpage = 'https://redacted.ch/' + action
-        if self.authkey:
-            kwargs['auth'] = self.authkey
-        r = self.session.get(ajaxpage, params=kwargs, allow_redirects=False)
-        self.last_request = time.time()
-        return r.content
+        except ValueError as e:
+            raise RequestException(e)
 
     def get_artist(self, id=None, format='MP3', best_seeded=True):
         res = self.request('artist', id=id)
@@ -185,64 +185,26 @@ class RedactedAPI:
         res['torrentgroup'] = keep_releases
         return res
 
-    def snatched(self, skip=None, media=lossless_media):
-        if not media.issubset(lossless_media):
-            raise ValueError('Unsupported media type %s' % (media - lossless_media).pop())
-
-        # gazelle doesn't currently support multiple values per query
-        # parameter, so we have to search a media type at a time;
-        # unless it's all types, in which case we simply don't specify
-        # a 'media' parameter (defaults to all types).
-
-        if media == lossless_media:
-            media_params = ['']
-        else:
-            media_params = ['&media=%s' % media_search_map[m] for m in media]
-
-        url = 'https://redacted.ch/torrents.php?type=snatched&userid=%s&format=FLAC' % self.userid
-        for mp in media_params:
-            page = 1
-            done = False
-            pattern = re.compile('torrents.php\?id=(\d+)&amp;torrentid=(\d+)')
-            while not done:
-                content = self.session.get(url + mp + "&page=%s" % page).text
-                for groupid, torrentid in pattern.findall(content):
-                    if skip is None or torrentid not in skip:
-                        yield int(groupid), int(torrentid)
-                done = 'Next &gt;' not in content
-                page += 1
-
-    def upload(self, group, torrent, new_torrent, format, description=[]):
-        url = "https://redacted.ch/upload.php?groupid=%s" % group['group']['id']
-        response = self.session.get(url)
-        forms = mechanize.ParseFile(StringIO(response.text.encode('utf-8')), url)
-        form = forms[-1]
-        form.find_control('file_input').add_file(open(new_torrent), 'application/x-bittorrent', os.path.basename(new_torrent))
-        #if torrent['remastered']:
-        #    form.find_control('remaster').set_single('1')
-        form['remaster_year'] = str(torrent['remasterYear'])
-        form['remaster_title'] = torrent['remasterTitle']
-        form['remaster_record_label'] = torrent['remasterRecordLabel']
-        form['remaster_catalogue_number'] = torrent['remasterCatalogueNumber']
-        form.find_control('format').set('1', formats[format]['format'])
-        form.find_control('bitrate').set('1', formats[format]['encoding'])
-        form.find_control('media').set('1', torrent['media'])
-
-        release_desc = '\n'.join(description)
-        if release_desc:
-            form['release_desc'] = release_desc
-
-        _, data, headers = form.click_request_data()
-        return self.session.post(url, data=data, headers=dict(headers))
-
-    def set_24bit(self, torrent):
-        url = "https://redacted.ch/torrents.php?action=edit&id=%s" % torrent['id']
-        response = self.session.get(url)
-        forms = mechanize.ParseFile(StringIO(response.text.encode('utf-8')), url)
-        form = forms[-3]
-        form.find_control('bitrate').set('1', '24bit Lossless')
-        _, data, headers = form.click_request_data()
-        return self.session.post(url, data=data, headers=dict(headers))
+    def snatched(self):
+        page = 0
+        while True:
+            response = self.request(
+                'user_torrents',
+                id=self.userid,
+                type='snatched',
+                limit=self.page_size,
+                offset=page * self.page_size
+            )
+            snatched = response['snatched']
+            if len(snatched) == 0:
+                break
+            print(f'Fetched snatched results {page * self.page_size} to '
+                  f'{(page + 1) * self.page_size - 1}')
+            for entry in snatched:
+                group_id = int(entry['groupId'])
+                torrent_id = int(entry['torrentId'])
+                yield group_id, torrent_id
+            page += 1
 
     def release_url(self, group, torrent):
         return "https://redacted.ch/torrents.php?id=%s&torrentid=%s#torrent%s" % (group['group']['id'], torrent['id'], torrent['id'])
@@ -283,5 +245,6 @@ class RedactedAPI:
     def get_torrent_info(self, id):
         return self.request('torrent', id=id)['torrent']
 
+
 def unescape(text):
-    return html.parser.HTMLParser().unescape(text)
+    return html.unescape(text)
