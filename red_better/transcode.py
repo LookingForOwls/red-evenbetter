@@ -9,9 +9,8 @@ import shutil
 import signal
 import subprocess
 import sys
-from html.parser import HTMLParser
 import unidecode
-
+import html
 import mutagen.flac
 
 from red_better import tagging
@@ -246,7 +245,7 @@ def path_length_exceeds_limit(flac_dir, basename):
     return False
 
 def get_suitable_basename(basename):
-	h = HTMLParser()
+	h = html
 	return unidecode.unidecode(h.unescape(basename).replace('\\', ',').replace('/', ',').replace(':', ',').replace('*', '').replace('?', '').replace('"', '').replace('<', '').replace('>', '').replace('|', ''))
 
 def get_transcode_dir(flac_dir, output_dir, basename, output_format, resample):
@@ -266,6 +265,23 @@ def get_transcode_dir(flac_dir, output_dir, basename, output_format, resample):
             Please enter a shorter directory name: ").decode('utf-8'))
 
     return os.path.join(output_dir, basename)
+
+# To ensure that a terminated pool subprocess terminates its
+# children, we make each pool subprocess a process group leader,
+# and handle SIGTERM by killing the process group. This will
+# ensure there are no lingering processes when a transcode fails
+# or is interrupted.
+def pool_initializer():
+    os.setsid()
+    def sigterm_handler(signum, frame):
+        # We're about to SIGTERM the group, including us; ignore
+        # it so we can finish this handler.
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        pgid = os.getpgid(0)
+        os.killpg(pgid, signal.SIGTERM)
+        sys.exit(-signal.SIGTERM)
+    signal.signal(signal.SIGTERM, sigterm_handler)
+
 
 def transcode_release(flac_dir, output_dir, basename, output_format, max_threads=None):
     '''
@@ -294,22 +310,6 @@ def transcode_release(flac_dir, output_dir, basename, output_format, max_threads
         os.makedirs(transcode_dir)
     else:
         raise TranscodeException('transcode output directory "%s" already exists' % transcode_dir)
-
-    # To ensure that a terminated pool subprocess terminates its
-    # children, we make each pool subprocess a process group leader,
-    # and handle SIGTERM by killing the process group. This will
-    # ensure there are no lingering processes when a transcode fails
-    # or is interrupted.
-    def pool_initializer():
-        os.setsid()
-        def sigterm_handler(signum, frame):
-            # We're about to SIGTERM the group, including us; ignore
-            # it so we can finish this handler.
-            signal.signal(signal.SIGTERM, signal.SIG_IGN)
-            pgid = os.getpgid(0)
-            os.killpg(pgid, signal.SIGTERM)
-            sys.exit(-signal.SIGTERM)
-        signal.signal(signal.SIGTERM, sigterm_handler)
 
     try:
         # create transcoding threads

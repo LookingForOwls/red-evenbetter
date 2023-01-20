@@ -104,6 +104,7 @@ _spectrograms () { # takes -one- array index as argument
 	}
 
 	[[ $fail -eq "1" ]] && return 1
+	return 0
 }
 
 

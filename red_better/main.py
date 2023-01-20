@@ -103,9 +103,9 @@ def validate_formats(formats: List[str]) -> None:
                              f'of {allowed_formats}')
 
 
-def validate_spectrograms(flac_dir_str: str, threads: int) -> bool:
+def validate_spectrograms(flac_dir_str: str, spectral_dir_str: str, threads: int) -> bool:
     flac_dir = Path(flac_dir_str)
-    spectrogram_dir = Path('/tmp/spectrograms')
+    spectrogram_dir = Path(spectral_dir_str)
     if spectrogram_dir.exists():
         shutil.rmtree(spectrogram_dir)
     spectrogram_dir.mkdir()
@@ -153,12 +153,12 @@ def main():
     parser.add_argument(
         '--config',
         help='the location of the configuration file',
-        default=Path('~/.redactedbetter/config').expanduser()
+        default=Path('./.redactedbetter/config').expanduser()
     )
     parser.add_argument(
         '--cache',
         help='the location of the cache',
-        default=Path('~/.redactedbetter/cache').expanduser()
+        default=Path('./.redactedbetter/cache').expanduser()
     )
     parser.add_argument(
         '-p',
@@ -239,7 +239,6 @@ def main():
     retry_modes = set(args.retry)
 
     for groupid, torrentid in candidates:
-        print(f'Torrent ID: {torrentid}')
         if torrentid in cache.ids:
             retry = False
             if cache.ids[torrentid] in retry_modes:
@@ -259,6 +258,9 @@ def main():
             year = str(torrent['remasterYear'])
             if year == "0":
                 year = str(group['group']['year'])
+            
+            title = group['group']['name']
+            print(f'\nTorrent ID: {torrentid} - {artist} - {title}')
 
             if not torrent['filePath']:
                 flac_file = os.path.join(data_dir, redactedapi.unescape(torrent['fileList']).split('{{{')[0])
@@ -306,10 +308,10 @@ def main():
 
             if len(needed) == 0:
                 cache.add(torrentid, 'formats', cache_path)
-                print('No formats needed. Skipping.')
+                print(' -> No formats needed. Skipping.')
                 continue
             else:
-                print("Formats needed: %s" % ', '.join(needed))
+                print(" -> Formats needed: %s" % ', '.join(needed))
 
             # Before proceeding, do the basic tag checks on the source
             # files to ensure any uploads won't be reported, but punt
@@ -329,32 +331,26 @@ def main():
 
             # Manually validate spectrograms
             if not args.skip_spectral:
-                spectrograms_ok = validate_spectrograms(flac_dir, args.threads)
+                print("\nGenerating Spectrograms...")
+                spectrograms_ok = validate_spectrograms(flac_dir, spectral_dir, args.threads)
                 if not spectrograms_ok:
                     cache.add(torrentid, 'spectrograms', cache_path)
                     continue
 
             if not args.skip_hashcheck:
+                print("\nRunning Hashcheck...")
                 file_path = Path(tempfile.mkstemp()[1])
-                hashcheck_passed = False
                 try:
                     api.save_torrent_file(torrentid, file_path)
-                    hashcheck_passed, output = run_hashcheck(
-                        file_path,
-                        Path(flac_dir)
-                    )
+                    hashcheck_passed = run_hashcheck(file_path, Path(flac_dir))
                 finally:
                     file_path.unlink()
                 if hashcheck_passed:
                     print('Hashcheck passed!')
                 else:
                     cache.add(torrentid, 'hashcheck', cache_path)
-                    print('Hashcheck failed with output:')
-                    print(output)
-                    print('Skipping.')
+                    print('Hashcheck failed, skipping...')
                     continue
-
-            sys.exit(1)
 
             for format in needed:
                 if Path(flac_dir).exists():

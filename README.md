@@ -1,6 +1,13 @@
 ## Introduction
 
-This repository contains a quick, minor fork of a preexisting excellent REDBetter fork available [here](https://github.com/MattRob1nson/REDBetter/).
+This is a quick fork of https://gitlab.com/stormgit/red-better which is a fork of https://github.com/MattRob1nson/REDBetter/ to resolve some issues and make a few minor changes. 
+
+* Now works with Python 3.9+
+* Configs stored in `.redactedbetter` folder in code directory instead of `~/`  
+* Changed hashcheck to use imdl (Intermodal)
+* Fixed issues with script incorrectly exiting, multiprocess and spectral generation
+
+Code is provided as-is, please be cautious when running it. 
 
 ---
 REDBetter is a script which searches your torrent download directory for any FLAC torrents which do not have transcodes, then automatically transcodes and uploads the torrents to redacted.ch.
@@ -20,7 +27,7 @@ This fork effectively aims to make the process result in fewer errors but increa
 * `mktorrent>=1.1`
 * `lame`, `sox` and `flac`
 * [Poetry](https://python-poetry.org/)
-
+* [Intermodal] (https://github.com/casey/intermodal)
 
 ## Installation Instructions
 
@@ -33,7 +40,7 @@ This fork effectively aims to make the process result in fewer errors but increa
 
 #### 3. Install `mktorrent`
 
-`mktorrent` must be built from source since it requires version at least 1.1, rather than installed using a package manager. For Linux systems, run the following commands in a temporary directory:
+`mktorrent` version 1.1 or higher is needed. Both Brew and Ubuntu repositories include version 1.1 now.  If you need to build from source you can with the following steps for Linux systems:
 
 ~~~~
 $> git clone git@github.com:Rudde/mktorrent.git
@@ -61,19 +68,22 @@ These should all be available on your package manager of choice:
   * macOS: `brew install lame sox flac`
 
 
-#### 6. (Optional) Install Pyrocore (hashcheck)
+#### 6. (Optional) Install Intermodal (hashcheck)
 
-This program requires the `hashcheck` program from pyrocore to be available on your path in order to run hash check verification. This verification can be skipped (not recommended) by providing the `--skip-hashcheck` option.
+This program requires the `idml` to be available on your path in order to run hash check verification. This verification can be skipped (not recommended) by providing the `--skip-hashcheck` option.
+You can read the install instructions [here](https://github.com/casey/intermodal). 
 
-If you do not want to opt out of hashcheck verification, you may install pyrocore with [these](https://pyrocore.readthedocs.io/en/latest/installation.html) instructions (or ask your seedbox provider if applicable).
+Installing somewhere like `/usr/local/bin` ensures that it is in your path.
+`curl --proto '=https' --tlsv1.2 -sSf https://imdl.io/install.sh | bash -s -- --to /usr/local/bin`
 
+You can verify its working by simply running: `imdl`
 
 ## Configuration
 Run REDBetter by running `poetry run better`
 
 You will receive a notification stating that you should edit the configuration file located at:
 
-    ~/.redactedbetter/config
+    .redactedbetter/config
 
 Open this file in your preferred text editor, and configure as desired. The options are as follows:
 * `username`: Your redacted.ch username.
@@ -132,7 +142,7 @@ To transcode and upload a specific release (provided you have already downloaded
 
 REDBetter caches the results of your transcodes, and will skip any transcodes it believes it's already finished. This makes subsequent runs much faster than the first, especially with large download directories. However, if you do run into errors when running the script, sometimes you will find that the cache thinks the torrent it crashed on previously was uploaded - so it skips it. A solution would be to manually specify the release as mentioned above. If you have multiple issues like this, you can remove the cache:
 
-    $> rm ~/.redactedbetter/cache
+    $> rm .redactedbetter/cache
 
 Beware though, this will cause the script to re-check every download as it does on the first run.
 
@@ -144,4 +154,4 @@ The `--retry` flag accepts a space-delimited list of modes to retry. Acceptable 
 
 ## Bugs and feature requests
 
-If you have any issues using the script, or would like to suggest a feature, please use the issue tracker on the parent fork of this project available [here](https://github.com/MattRob1nson/REDBetter/). This was meant as quick fork of that project to fulfill a simple need.
+If you have any issues using the script, or would like to suggest a feature, please use the issue tracker but do not expect a quick response.
