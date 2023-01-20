@@ -2,15 +2,13 @@
 
 This is a quick fork of https://gitlab.com/stormgit/red-better to resolve some issues and make a few minor changes. 
 
-The source of both forks is https://github.com/iw00t/REDBetter
-
 * Now works with Python 3.9+
 * Configs stored in `.redactedbetter` folder in code directory instead of `~/`  
 * Changed hashcheck to use imdl (Intermodal)
 * Fixed issues with script incorrectly exiting, multiprocess and spectral generation
 
 Code is provided as-is, please be cautious when running it. 
-
+The source of both forks is https://github.com/iw00t/REDBetter
 ---
 REDBetter is a script which searches your torrent download directory for any FLAC torrents which do not have transcodes, then automatically transcodes and uploads the torrents to redacted.ch.
 
