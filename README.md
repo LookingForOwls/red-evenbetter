@@ -1,6 +1,8 @@
 ## Introduction
 
-This is a quick fork of https://gitlab.com/stormgit/red-better which is a fork of https://github.com/MattRob1nson/REDBetter/ to resolve some issues and make a few minor changes. 
+This is a quick fork of https://gitlab.com/stormgit/red-better to resolve some issues and make a few minor changes. 
+
+The source of both forks is https://github.com/iw00t/REDBetter
 
 * Now works with Python 3.9+
 * Configs stored in `.redactedbetter` folder in code directory instead of `~/`  
@@ -27,7 +29,7 @@ This fork effectively aims to make the process result in fewer errors but increa
 * `mktorrent>=1.1`
 * `lame`, `sox` and `flac`
 * [Poetry](https://python-poetry.org/)
-* [Intermodal] (https://github.com/casey/intermodal)
+* [Intermodal](https://github.com/casey/intermodal)
 
 ## Installation Instructions
 
