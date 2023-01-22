@@ -45,5 +45,9 @@ def runSox(spectrogram_dir, flac_dir, flac_file):
 def make_spectrograms(flac_dir, spectral_dir_str, max_threads = 4):
     files = list(Path(flac_dir).rglob("*.flac"))
     with Pool(max_threads) as pool:
-        func = partial(runSox, spectral_dir_str, flac_dir)
-        output = pool.map(func, files)
+        try:
+            func = partial(runSox, spectral_dir_str, flac_dir)
+            output = pool.map(func, files)
+        except Exception as e:
+            return False
+        return True
