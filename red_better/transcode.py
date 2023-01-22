@@ -232,7 +232,7 @@ def transcode(flac_file, output_dir, output_format):
     return transcode_file
 
 def path_length_exceeds_limit(flac_dir, basename):
-    path_length = 0;
+    path_length = 0
     flac_files = locate(flac_dir, ext_matcher('.flac'))
 
     source_directory_name = flac_dir[flac_dir.rfind('/') + 1:-1]
